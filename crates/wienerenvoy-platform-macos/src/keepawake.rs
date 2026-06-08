@@ -1,67 +1,90 @@
 //! Keep-awake assertion backed by `caffeinate`.
 //!
-//! M0: tracks engaged state in an atomic, no child process. M1 spawns
-//! `caffeinate -s` as a long-lived child, persists its PID, reconciles orphans
-//! across daemon restarts (`kill(pid, 0)` liveness plus `ps comm` re-verify
-//! against PID reuse), and releases on graceful shutdown.
+//! Holds a long-lived `caffeinate` child process. `kill_on_drop(true)` plus an
+//! explicit `release()` on graceful shutdown cover the normal lifecycle; a hard
+//! SIGKILL of the daemon can still orphan the child, which a future PID-file
+//! reconciliation (M1.1) will clean up on startup.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 use async_trait::async_trait;
+use tokio::process::{Child, Command};
 use wienerenvoy_core::power::{KeepAwake, PowerError};
 
 /// Keep-awake backed by macOS `caffeinate`.
-#[derive(Debug, Default)]
 pub struct CaffeinateKeeper {
-    engaged: AtomicBool,
+    flags: String,
+    child: Mutex<Option<Child>>,
 }
 
 impl CaffeinateKeeper {
+    /// Create a keeper with the given `caffeinate` flags (e.g. `-s`).
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(flags: impl Into<String>) -> Self {
         Self {
-            engaged: AtomicBool::new(false),
+            flags: flags.into(),
+            child: Mutex::new(None),
         }
+    }
+}
+
+impl Default for CaffeinateKeeper {
+    fn default() -> Self {
+        Self::new("-s")
     }
 }
 
 #[async_trait]
 impl KeepAwake for CaffeinateKeeper {
     async fn engage(&self, reason: &str) -> Result<(), PowerError> {
-        tracing::info!(
-            reason,
-            "M0 stub: keep-awake engaged (no caffeinate child until M1)"
-        );
-        self.engaged.store(true, Ordering::SeqCst);
+        let mut guard = self.child.lock().unwrap();
+        if guard.is_some() {
+            return Ok(());
+        }
+        let child = Command::new("caffeinate")
+            .arg(&self.flags)
+            .kill_on_drop(true)
+            .spawn()
+            .map_err(PowerError::Spawn)?;
+        tracing::info!(reason, pid = child.id(), "caffeinate engaged");
+        *guard = Some(child);
         Ok(())
     }
 
     async fn release(&self) -> Result<(), PowerError> {
-        tracing::info!("M0 stub: keep-awake released");
-        self.engaged.store(false, Ordering::SeqCst);
+        // Take the child out under the lock, then await the kill without holding
+        // the (non-Send) guard across the await point.
+        let child = self.child.lock().unwrap().take();
+        if let Some(mut child) = child {
+            let _ = child.start_kill();
+            let _ = child.wait().await;
+            tracing::info!("caffeinate released");
+        }
         Ok(())
     }
 
     fn is_engaged(&self) -> bool {
-        self.engaged.load(Ordering::SeqCst)
+        self.child.lock().unwrap().is_some()
     }
 
     fn holder_pid(&self) -> Option<u32> {
-        None
+        self.child.lock().unwrap().as_ref().and_then(Child::id)
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn engage_release_toggles_state() {
-        let k = CaffeinateKeeper::new();
-        assert!(!k.is_engaged());
-        k.engage("test").await.unwrap();
-        assert!(k.is_engaged());
-        k.release().await.unwrap();
-        assert!(!k.is_engaged());
+    #[ignore = "spawns a real caffeinate process; macOS only"]
+    async fn engage_release_real_caffeinate() {
+        let keeper = CaffeinateKeeper::new("-s");
+        assert!(!keeper.is_engaged());
+        keeper.engage("test").await.unwrap();
+        assert!(keeper.is_engaged());
+        assert!(keeper.holder_pid().is_some());
+        keeper.release().await.unwrap();
+        assert!(!keeper.is_engaged());
     }
 }
