@@ -1,0 +1,31 @@
+[package]
+name = "wienerenvoy-core"
+description = "Platform-agnostic domain core for WienerEnvoy: control traits, telemetry types, the granular shutdown state machine, config, and auth."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+readme.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+async-trait.workspace = true
+tracing.workspace = true
+figment.workspace = true
+secrecy = { workspace = true, features = ["serde"] }
+subtle.workspace = true
+rand.workspace = true
+directories.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+proptest.workspace = true
