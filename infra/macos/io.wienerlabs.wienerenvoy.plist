@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>io.wienerlabs.wienerenvoy</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/wienerenvoy-daemon</string>
+    </array>
+
+    <!-- Start at boot and keep it alive. KeepAlive also means a `restart`
+         machine command brings the daemon back automatically after boot. -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Library/Logs/WienerEnvoy/daemon.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Library/Logs/WienerEnvoy/daemon.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>RUST_LOG</key>
+        <string>info</string>
+        <key>WIENERENVOY_CONFIG</key>
+        <string>/Library/Application Support/WienerEnvoy/config.toml</string>
+        <key>WIENERENVOY_WEB_DIR</key>
+        <string>/Library/Application Support/WienerEnvoy/dashboard</string>
+    </dict>
+
+    <!-- No UserName key: this runs as root, which is required for pmset
+         scheduling and shutdown/reboot without sudo. -->
+</dict>
+</plist>

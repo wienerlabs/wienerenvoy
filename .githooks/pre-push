@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Pre-push: refuse to push if em dashes, formatting, or lints fail. Tests run in CI.
+set -euo pipefail
+
+bold() { printf "\033[1m%s\033[0m\n" "$*"; }
+
+bold "==> em dash guard (project-wide)"
+if git grep -nI $'\xe2\x80\x94' -- . ':(exclude)LICENSE'; then
+    printf "\033[31m✗ em dash (U+2014) found above. Replace it with a colon, semicolon, dash (-), or paragraph break.\033[0m\n" >&2
+    exit 1
+fi
+
+bold "==> cargo fmt --check"
+cargo fmt --all -- --check
+
+bold "==> cargo clippy"
+cargo clippy --workspace --all-targets -- -D warnings
+
+bold "✓ Pre-push checks passed"

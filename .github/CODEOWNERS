@@ -1,0 +1,15 @@
+# Default owner for everything.
+*                       @kh0ra
+
+# Architectural decisions need extra eyes (placeholder for when the team grows).
+/docs/adr/              @kh0ra
+
+# Security-sensitive areas: the bind/auth boundary and supply chain.
+/SECURITY.md            @kh0ra
+/.github/workflows/     @kh0ra
+/deny.toml              @kh0ra
+/infra/                 @kh0ra
+/install/               @kh0ra
+/crates/wienerenvoy-daemon/src/auth.rs   @kh0ra
+/crates/wienerenvoy-daemon/src/bind.rs   @kh0ra
+/crates/wienerenvoy-core/src/auth.rs     @kh0ra

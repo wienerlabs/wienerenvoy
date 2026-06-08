@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - aarch64-apple-darwin # Mac mini M4 (primary)
+          - x86_64-apple-darwin # Intel Macs
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Build dashboard
+        run: pnpm install --frozen-lockfile && pnpm build
+        working-directory: web
+      - name: Build daemon and CLI
+        run: >-
+          cargo build --release --locked
+          -p wienerenvoy-daemon -p wienerenvoy-cli
+          --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          tag=${GITHUB_REF#refs/tags/}
+          name="wienerenvoy-${tag}-${{ matrix.target }}"
+          out="dist/${name}"
+          mkdir -p "${out}"
+          for bin in wienerenvoy-daemon wenvoy; do
+            cp "target/${{ matrix.target }}/release/${bin}" "${out}/"
+          done
+          cp -R web/out "${out}/dashboard"
+          cp -R install "${out}/install"
+          cp -R infra "${out}/infra"
+          cp README.md LICENSE CHANGELOG.md "${out}/"
+          (cd dist && tar -czf "${name}.tar.gz" "${name}")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*.tar.gz
+
+  release:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Generate notes
+        run: |
+          set -euo pipefail
+          tag=${GITHUB_REF#refs/tags/}
+          prev=$(git tag --sort=-creatordate | grep -v "^${tag}$" | head -1 || true)
+          {
+            echo "## ${tag}"
+            echo
+            if [[ -n "${prev}" ]]; then
+              echo "### Changes since ${prev}"
+              git log --pretty=format:"- %s (%h)" "${prev}..${tag}"
+            else
+              echo "Initial release."
+            fi
+          } > NOTES.md
+      - name: Publish
+        uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*.tar.gz
+          body_path: NOTES.md
+          generate_release_notes: false

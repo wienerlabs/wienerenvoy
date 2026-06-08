@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in WienerEnvoy is broken
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the report. For security issues, use a private advisory instead.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - daemon
+        - cli (wenvoy)
+        - dashboard (web)
+        - install / launchd
+        - other / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `wenvoy --version` (or the commit SHA).
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: e.g. 15.5 on Mac mini M4
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Daemon logs from /Library/Logs/WienerEnvoy/, with any token redacted.
+      render: shell
