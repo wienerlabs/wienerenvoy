@@ -1,0 +1,50 @@
+# Rust
+/target
+**/*.rs.bk
+Cargo.lock.bak
+
+# Logs
+*.log
+logs/
+
+# Local environment
+.env
+.env.local
+.env.*.local
+wienerenvoy.local.toml
+
+# Editor
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+.zed/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# Linux
+*~
+
+# Node / Next (web/)
+node_modules/
+web/.next/
+web/out/
+web/.turbo/
+*.tsbuildinfo
+
+# Coverage
+/coverage
+*.profraw
+tarpaulin-report.html
+
+# Secrets (paranoid)
+*.pem
+*.key
+*.p12
+*credentials*.json
+!**/test_credentials.json

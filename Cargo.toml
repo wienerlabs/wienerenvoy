@@ -1,0 +1,141 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/wienerenvoy-core",
+    "crates/wienerenvoy-platform-macos",
+    "crates/wienerenvoy-daemon",
+    "crates/wienerenvoy-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/wienerlabs/wienerenvoy"
+homepage = "https://github.com/wienerlabs/wienerenvoy"
+authors = ["Wiener Labs <asesenep15@gmail.com>"]
+readme = "README.md"
+
+[workspace.dependencies]
+# Internal crates
+wienerenvoy-core = { path = "crates/wienerenvoy-core", version = "0.1.0" }
+wienerenvoy-platform-macos = { path = "crates/wienerenvoy-platform-macos", version = "0.1.0" }
+
+# Async runtime
+tokio = { version = "1.42", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Identifiers
+uuid = { version = "1.11", features = ["v4", "serde"] }
+
+# Logging and telemetry
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# CLI
+clap = { version = "4.5", features = ["derive", "env", "wrap_help"] }
+clap_complete = "4.5"
+comfy-table = "7.1"
+
+# HTTP server + client
+axum = { version = "0.8", features = ["ws", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors", "fs", "limit"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+
+# System metrics
+sysinfo = "0.33"
+
+# Config
+figment = { version = "0.10", features = ["toml", "env"] }
+
+# Unix / process control
+nix = { version = "0.29", features = ["signal", "process"] }
+
+# Secrets / crypto
+secrecy = "0.10"
+subtle = "2.6"
+rand = "0.8"
+
+# Static asset embedding (daemon, behind embed-ui feature)
+rust-embed = { version = "8", features = ["mime-guess"] }
+
+# Filesystem paths
+directories = "5"
+
+# Test
+insta = { version = "1.41", features = ["yaml", "json"] }
+mockall = "0.13"
+tokio-test = "0.4"
+pretty_assertions = "1.4"
+proptest = "1.6"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "allow"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+doc_markdown = "allow"
+multiple_crate_versions = "allow"
+uninlined_format_args = "allow"
+single_match_else = "allow"
+match_same_arms = "allow"
+match_like_matches_macro = "allow"
+single_match = "allow"
+match_wildcard_for_single_variants = "allow"
+needless_pass_by_value = "allow"
+too_many_lines = "allow"
+cognitive_complexity = "allow"
+similar_names = "allow"
+unreadable_literal = "allow"
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+cast_lossless = "allow"
+unused_async = "allow"
+default_trait_access = "allow"
+needless_collect = "allow"
+redundant_closure_for_method_calls = "allow"
+manual_let_else = "allow"
+unnested_or_patterns = "allow"
+items_after_statements = "allow"
+struct_field_names = "allow"
+unused_self = "allow"
+result_large_err = "allow"
+struct_excessive_bools = "allow"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.test]
+opt-level = 1
