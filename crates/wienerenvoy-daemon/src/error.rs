@@ -6,15 +6,14 @@ use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde_json::json;
+use wienerenvoy_core::PowerError;
 
 #[derive(Debug)]
 pub enum ApiError {
     Unauthorized,
     Forbidden,
     NotImplemented(String),
-    #[allow(dead_code)]
     Conflict(String),
-    #[allow(dead_code)]
     Internal(String),
 }
 
@@ -36,5 +35,19 @@ impl IntoResponse for ApiError {
             Self::Internal(m) => (StatusCode::INTERNAL_SERVER_ERROR, "internal", m),
         };
         (status, Json(json!({ "error": code, "message": message }))).into_response()
+    }
+}
+
+impl From<PowerError> for ApiError {
+    fn from(err: PowerError) -> Self {
+        match err {
+            PowerError::NotPermitted => Self::Internal(
+                "power action not permitted; the daemon must run as root".to_string(),
+            ),
+            PowerError::Disabled(action) => {
+                Self::Conflict(format!("action '{action}' is disabled"))
+            }
+            other => Self::Internal(other.to_string()),
+        }
     }
 }

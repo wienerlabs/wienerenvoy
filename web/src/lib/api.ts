@@ -70,4 +70,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ confirm }),
     }),
+  serverLevel: (on: boolean) =>
+    request<ServerState>(`/api/v1/power/server/${on ? "on" : "off"}`, {
+      method: "POST",
+    }),
+  scheduleWake: (relativeSecs: number) =>
+    request<unknown>("/api/v1/power/wake-schedule", {
+      method: "POST",
+      body: JSON.stringify({ relativeSecs }),
+    }),
 };

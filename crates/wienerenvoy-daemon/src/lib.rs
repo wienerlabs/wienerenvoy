@@ -1,4 +1,5 @@
-//! WienerEnvoy daemon library: configuration, binding, and the server run loop.
+//! WienerEnvoy daemon library: configuration, binding, telemetry sampling, and
+//! the server run loop.
 //!
 //! The security posture lives here: the daemon binds only loopback and explicit
 //! (tailnet) addresses, never `0.0.0.0`; a peer-guard rejects non-tailnet
@@ -14,16 +15,18 @@ pub mod static_assets;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::Context;
 use chrono::Utc;
 use secrecy::ExposeSecret;
-use tokio::sync::{Mutex, Notify};
+use tokio::sync::{Mutex, Notify, broadcast};
 use tokio::task::JoinSet;
+use tokio::time::MissedTickBehavior;
 use tracing_subscriber::EnvFilter;
 use wienerenvoy_core::auth::read_token_file;
-use wienerenvoy_core::{AuthStore, Config, ServerStateMachine};
-use wienerenvoy_platform_macos::{CaffeinateKeeper, MacOsPower};
+use wienerenvoy_core::{AuthStore, Config, KeepAwake, ServerStateMachine, SystemSnapshot, WsFrame};
+use wienerenvoy_platform_macos::{CaffeinateKeeper, MacOsPower, MetricsSampler};
 
 use crate::state::AppState;
 
@@ -46,14 +49,23 @@ pub async fn run() -> anyhow::Result<()> {
     let auth = load_or_create_auth(&config);
     let web_dir = std::env::var("WIENERENVOY_WEB_DIR").ok().map(PathBuf::from);
 
+    let (events, _) = broadcast::channel::<WsFrame>(256);
+    let snapshot: Arc<Mutex<Option<SystemSnapshot>>> = Arc::new(Mutex::new(None));
+    let keepawake: Arc<dyn KeepAwake> =
+        Arc::new(CaffeinateKeeper::new(config.power.keep_awake_flags.clone()));
+
     let app_state = AppState {
         config: Arc::new(config.clone()),
         auth: Arc::new(auth),
         state: Arc::new(Mutex::new(ServerStateMachine::new(Utc::now()))),
         power: Arc::new(MacOsPower::new()),
-        keepawake: Arc::new(CaffeinateKeeper::new()),
+        keepawake: keepawake.clone(),
+        snapshot: snapshot.clone(),
+        events: events.clone(),
         version: VERSION.to_string(),
     };
+
+    spawn_sampler(config.metrics.sample_interval_ms, snapshot, events);
 
     let binds = bind::resolve_binds(
         config.server.http_port,
@@ -67,7 +79,6 @@ pub async fn run() -> anyhow::Result<()> {
 
     let router = router::build_router(app_state, web_dir);
 
-    // One graceful-shutdown notify shared by every listener.
     let notify = Arc::new(Notify::new());
     let mut servers = JoinSet::new();
     for addr in binds {
@@ -94,6 +105,8 @@ pub async fn run() -> anyhow::Result<()> {
     shutdown_signal().await;
     tracing::info!("shutdown signal received; draining");
     notify.notify_waiters();
+    // Release the keep-awake assertion so the machine can idle-sleep again.
+    let _ = keepawake.release().await;
 
     while let Some(joined) = servers.join_next().await {
         match joined {
@@ -106,9 +119,35 @@ pub async fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Spawn the background telemetry sampler. It builds the sampler off the async
+/// thread (the CPU warm-up blocks), then samples on an interval and publishes to
+/// both the snapshot cache and the broadcast channel.
+fn spawn_sampler(
+    interval_ms: u64,
+    snapshot: Arc<Mutex<Option<SystemSnapshot>>>,
+    events: broadcast::Sender<WsFrame>,
+) {
+    tokio::spawn(async move {
+        let mut sampler = match tokio::task::spawn_blocking(MetricsSampler::new).await {
+            Ok(sampler) => sampler,
+            Err(err) => {
+                tracing::error!(error = %err, "failed to start metrics sampler");
+                return;
+            }
+        };
+        let mut ticker = tokio::time::interval(Duration::from_millis(interval_ms.max(250)));
+        ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
+        loop {
+            ticker.tick().await;
+            let snap = sampler.sample();
+            *snapshot.lock().await = Some(snap.clone());
+            let _ = events.send(WsFrame::Metrics(snap));
+        }
+    });
+}
+
 fn init_tracing() {
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    // Log to stderr so launchd captures it in StandardErrorPath.
     let _ = tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_target(false)

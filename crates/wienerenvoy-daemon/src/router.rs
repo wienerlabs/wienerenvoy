@@ -1,5 +1,6 @@
-//! Router assembly: public routes, bearer-gated routes, the static dashboard
-//! fallback, and the global peer-guard plus trace layers.
+//! Router assembly: public routes, bearer-gated routes, the WebSocket route
+//! (self-authenticated), the static dashboard fallback, and the global
+//! peer-guard plus trace layers.
 
 use std::path::PathBuf;
 
@@ -14,40 +15,32 @@ use crate::static_assets;
 
 /// Build the full application router.
 pub fn build_router(state: AppState, web_dir: Option<PathBuf>) -> Router {
-    // Routes that require a valid bearer token.
+    // Routes that require a valid bearer token in the Authorization header.
     let protected = Router::new()
         .route("/api/v1/state", get(routes::server_state::get_state))
-        .route("/api/v1/system/metrics", get(routes::stub::not_implemented))
-        .route("/api/v1/system/info", get(routes::stub::not_implemented))
-        .route("/api/v1/presence", get(routes::stub::not_implemented))
+        .route("/api/v1/system/metrics", get(routes::system::get_metrics))
+        .route("/api/v1/system/info", get(routes::system::get_info))
+        .route("/api/v1/presence", get(routes::presence::get_presence))
         .route(
             "/api/v1/presence/keep-awake",
-            post(routes::stub::not_implemented),
+            post(routes::presence::post_keep_awake),
         )
-        .route(
-            "/api/v1/power/server/off",
-            post(routes::stub::not_implemented),
-        )
-        .route(
-            "/api/v1/power/server/on",
-            post(routes::stub::not_implemented),
-        )
-        .route("/api/v1/power/sleep", post(routes::stub::not_implemented))
-        .route("/api/v1/power/restart", post(routes::stub::not_implemented))
-        .route(
-            "/api/v1/power/shutdown",
-            post(routes::stub::not_implemented),
-        )
+        .route("/api/v1/power/server/off", post(routes::power::server_off))
+        .route("/api/v1/power/server/on", post(routes::power::server_on))
+        .route("/api/v1/power/sleep", post(routes::power::sleep))
+        .route("/api/v1/power/restart", post(routes::power::restart))
+        .route("/api/v1/power/shutdown", post(routes::power::shutdown))
         .route(
             "/api/v1/power/wake-schedule",
-            post(routes::stub::not_implemented),
+            post(routes::power::wake_schedule),
         )
+        // Service-level control arrives in M2.
         .route("/api/v1/services", get(routes::stub::not_implemented))
-        .route("/api/v1/ws", get(routes::stub::not_implemented))
-        .route_layer(middleware::from_fn_with_state(
-            state.clone(),
-            require_bearer,
-        ));
+        .route_layer(middleware::from_fn_with_state(state.clone(), require_bearer));
+
+    // The WebSocket route authenticates via ?token= inside the handler, because
+    // browsers cannot set request headers on a WebSocket.
+    let ws = Router::new().route("/api/v1/ws", get(routes::ws::ws_handler));
 
     // Public routes (no auth): liveness and a bootstrap probe.
     let public = Router::new()
@@ -57,6 +50,7 @@ pub fn build_router(state: AppState, web_dir: Option<PathBuf>) -> Router {
     Router::new()
         .merge(public)
         .merge(protected)
+        .merge(ws)
         .merge(static_assets::ui_router(web_dir))
         .layer(middleware::from_fn(peer_guard))
         .layer(TraceLayer::new_for_http())

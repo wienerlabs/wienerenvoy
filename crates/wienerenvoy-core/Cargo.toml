@@ -13,6 +13,10 @@ readme.workspace = true
 [lints]
 workspace = true
 
+[features]
+# Recording mocks for the power/keep-awake traits, used by daemon tests.
+testutil = []
+
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true

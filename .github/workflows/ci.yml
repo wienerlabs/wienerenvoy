@@ -49,7 +49,7 @@ jobs:
       - name: Unit tests
         run: cargo nextest run --workspace --no-fail-fast
       - name: Integration tests (ignored)
-        run: cargo nextest run --workspace --no-fail-fast --run-ignored ignored-only
+        run: cargo nextest run --workspace --no-fail-fast --run-ignored ignored-only --no-tests=warn
       - name: Doctests
         run: cargo test --workspace --doc
 
