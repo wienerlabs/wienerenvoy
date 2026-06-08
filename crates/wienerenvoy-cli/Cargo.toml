@@ -1,0 +1,31 @@
+[package]
+name = "wienerenvoy-cli"
+description = "wenvoy: the WienerEnvoy control CLI. Talks to the daemon over the tailnet to show status, manage the token, and install the service."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+readme.workspace = true
+
+[[bin]]
+name = "wenvoy"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+wienerenvoy-core.workspace = true
+clap.workspace = true
+clap_complete.workspace = true
+comfy-table.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+secrecy = { workspace = true, features = ["serde"] }
