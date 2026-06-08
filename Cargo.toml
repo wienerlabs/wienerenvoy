@@ -125,6 +125,8 @@ struct_field_names = "allow"
 unused_self = "allow"
 result_large_err = "allow"
 struct_excessive_bools = "allow"
+# from_mins/from_hours are unstable on MSRV 1.95; allow from_secs.
+duration_suboptimal_units = "allow"
 
 [profile.release]
 opt-level = 3

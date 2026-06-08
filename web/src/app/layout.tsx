@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Funnel_Display } from "next/font/google";
 
-import { Sidebar } from "@/components/sidebar";
+import { AppShell } from "@/components/app-shell";
 import { ThemeInit } from "@/components/theme-init";
 
 import "./globals.css";
@@ -28,10 +28,7 @@ export default function RootLayout({
         <ThemeInit />
       </head>
       <body>
-        <div className="flex min-h-dvh">
-          <Sidebar />
-          <main className="min-w-0 flex-1">{children}</main>
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
