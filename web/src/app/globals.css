@@ -1,0 +1,311 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: var(--font-funnel), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.125rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 1.75rem;
+  --radius-full: 9999px;
+}
+
+/* ---------------- Dark theme (default) ---------------- */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #07070a;
+  --color-bg-deep: #050507;
+  --color-surface: #101013;
+  --color-surface-2: #16161b;
+  --color-surface-elevated: #1c1c22;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+  --color-text: #fafafa;
+  --color-muted: #a1a1aa;
+  --color-muted-2: #71717a;
+
+  /* Status: online / awake (signal green) */
+  --color-online: #34d399;
+  --color-online-bg: rgba(16, 185, 129, 0.1);
+  --color-online-border: rgba(16, 185, 129, 0.34);
+  --color-online-glow: 0 0 24px -8px rgba(16, 185, 129, 0.35);
+
+  /* Status: standby / sleeping (amber) */
+  --color-standby: #fbbf24;
+  --color-standby-bg: rgba(245, 158, 11, 0.1);
+  --color-standby-border: rgba(245, 158, 11, 0.34);
+  --color-standby-glow: 0 0 24px -8px rgba(245, 158, 11, 0.35);
+
+  /* Status: offline / error (rose) */
+  --color-offline: #fb7185;
+  --color-offline-bg: rgba(244, 63, 94, 0.1);
+  --color-offline-border: rgba(244, 63, 94, 0.34);
+  --color-offline-glow: 0 0 24px -8px rgba(244, 63, 94, 0.35);
+
+  --color-grid: rgba(255, 255, 255, 0.025);
+  --shadow-surface: 0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 8px 28px -16px rgba(0, 0, 0, 0.7);
+  --shadow-elevated: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 24px 60px -24px rgba(0, 0, 0, 0.8);
+  --shadow-button: 0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 6px 16px -8px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------------- Light theme ---------------- */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg: #fafaf9;
+  --color-bg-deep: #f4f4f3;
+  --color-surface: #ffffff;
+  --color-surface-2: #f7f7f6;
+  --color-surface-elevated: #ffffff;
+  --color-border: rgba(0, 0, 0, 0.06);
+  --color-border-strong: rgba(0, 0, 0, 0.16);
+  --color-text: #18181b;
+  --color-muted: #52525b;
+  --color-muted-2: #71717a;
+
+  --color-online: #047857;
+  --color-online-bg: rgba(5, 150, 105, 0.1);
+  --color-online-border: rgba(5, 150, 105, 0.3);
+  --color-online-glow: 0 0 24px -8px rgba(5, 150, 105, 0.25);
+
+  --color-standby: #b45309;
+  --color-standby-bg: rgba(217, 119, 6, 0.1);
+  --color-standby-border: rgba(217, 119, 6, 0.3);
+  --color-standby-glow: 0 0 24px -8px rgba(217, 119, 6, 0.25);
+
+  --color-offline: #be123c;
+  --color-offline-bg: rgba(225, 29, 72, 0.08);
+  --color-offline-border: rgba(225, 29, 72, 0.3);
+  --color-offline-glow: 0 0 24px -8px rgba(225, 29, 72, 0.25);
+
+  --color-grid: rgba(0, 0, 0, 0.035);
+  --shadow-surface: 0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 1px 2px rgba(15, 15, 15, 0.05), 0 12px 32px -16px rgba(15, 15, 15, 0.1);
+  --shadow-elevated: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 12px 32px -12px rgba(15, 15, 15, 0.12);
+  --shadow-button: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 2px 4px rgba(15, 15, 15, 0.06);
+}
+
+@layer base {
+  html,
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-display);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    transition:
+      background-color 240ms ease,
+      color 240ms ease;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-text) 18%, transparent);
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-image:
+      linear-gradient(var(--color-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+    background-size: 56px 56px;
+    background-position: -1px -1px;
+  }
+
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-text) 40%, transparent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+@layer components {
+  .container-page {
+    max-width: 76rem;
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+  }
+
+  .hairline {
+    border-block-end: 1px solid var(--color-border);
+  }
+
+  .surface {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-surface);
+    transition:
+      border-color 200ms ease,
+      background-color 200ms ease,
+      box-shadow 200ms ease,
+      transform 200ms ease;
+  }
+
+  .surface-2 {
+    background-color: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  .surface-elevated {
+    background-color: var(--color-surface-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .surface-interactive:hover {
+    border-color: var(--color-border-strong);
+    transform: translateY(-1px);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-full);
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    line-height: 1;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-surface-2);
+    color: var(--color-text);
+    box-shadow: var(--shadow-button);
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease,
+      transform 180ms ease,
+      box-shadow 180ms ease;
+    cursor: pointer;
+  }
+  .btn:hover {
+    border-color: var(--color-text);
+    transform: translateY(-1px);
+  }
+  .btn:active {
+    transform: translateY(0);
+  }
+  .btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-primary {
+    background-color: var(--color-text);
+    color: var(--color-bg);
+    border-color: var(--color-text);
+  }
+  .btn-primary:hover {
+    opacity: 0.92;
+    border-color: var(--color-text);
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    border-color: var(--color-border);
+    box-shadow: none;
+  }
+  .btn-ghost:hover {
+    background-color: var(--color-surface-2);
+  }
+
+  .btn-danger {
+    background-color: var(--color-offline);
+    color: #0b0b0d;
+    border-color: var(--color-offline);
+  }
+  .btn-danger:hover {
+    opacity: 0.92;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface-2);
+    color: var(--color-muted);
+  }
+
+  .input {
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    transition:
+      border-color 180ms ease,
+      background-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+  .input:focus-within {
+    border-color: var(--color-border-strong);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-text) 6%, transparent);
+  }
+
+  .mono {
+    font-family: var(--font-mono);
+    font-feature-settings: normal;
+  }
+
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Status pill, driven by a data-status attribute. */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface-2);
+    color: var(--color-muted);
+  }
+  .pill[data-status="online"] {
+    color: var(--color-online);
+    border-color: var(--color-online-border);
+    background: var(--color-online-bg);
+  }
+  .pill[data-status="standby"] {
+    color: var(--color-standby);
+    border-color: var(--color-standby-border);
+    background: var(--color-standby-bg);
+  }
+  .pill[data-status="offline"] {
+    color: var(--color-offline);
+    border-color: var(--color-offline-border);
+    background: var(--color-offline-bg);
+  }
+  .pill .dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+  }
+}
