@@ -15,8 +15,13 @@ use crate::state::AppState;
 pub fn ui_router(web_dir: Option<PathBuf>) -> Router<AppState> {
     match web_dir {
         Some(dir) if dir.is_dir() => {
-            use tower_http::services::ServeDir;
-            let serve = ServeDir::new(&dir).append_index_html_on_directories(true);
+            use tower_http::services::{ServeDir, ServeFile};
+            // SPA fallback: unknown paths (deep links like /system) fall back to
+            // index.html so the client router can render the route.
+            let index = dir.join("index.html");
+            let serve = ServeDir::new(&dir)
+                .append_index_html_on_directories(true)
+                .fallback(ServeFile::new(index));
             tracing::info!(dir = %dir.display(), "serving dashboard from disk");
             Router::new().fallback_service(serve)
         }

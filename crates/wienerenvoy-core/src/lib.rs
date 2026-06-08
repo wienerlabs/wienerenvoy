@@ -13,6 +13,10 @@ pub mod presence;
 pub mod state;
 pub mod tailscale;
 pub mod telemetry;
+pub mod wire;
+
+#[cfg(feature = "testutil")]
+pub mod testutil;
 
 pub use auth::{AuthError, AuthStore};
 pub use config::{Config, ConfigError};
@@ -23,6 +27,7 @@ pub use telemetry::{
     CpuUsage, DiskUsage, MemoryUsage, NetworkRate, PresenceState, SystemInfo, SystemSnapshot,
     TempSensor,
 };
+pub use wire::{ActionAccepted, ConfirmedAction, KeepAwakeRequest, WakeRequest, WsFrame};
 
 /// The crate version, surfaced over the API for client compatibility checks.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
