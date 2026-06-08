@@ -6,7 +6,22 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
+### Added (M1: live power and telemetry)
+
+- **Power control.** Keep-awake via a managed `caffeinate` child; sleep, restart,
+  and shutdown with the sleep-default and shutdown-confirm asymmetry; scheduled
+  wake via `pmset`; server-level on/off. Actions are checked against the config
+  allowlist and recover-path metadata is returned to the caller.
+- **Live telemetry.** `sysinfo` CPU, memory, disk, and network sampled on an
+  interval and streamed over a WebSocket (token via query param), with a cached
+  snapshot for one-shot reads and `GET /api/v1/system/info`.
+- **Dashboard.** Live Overview, System, and Power pages driven by a reconnecting
+  WebSocket, sparklines, a keep-awake toggle, confirm-gated power actions,
+  scheduled wake, a token gate, and trailing-slash routing for deep links.
+- **Tests.** Recording power/keep-awake mocks plus mock-backed HTTP integration
+  tests (auth, confirmation, action acceptance).
+
+### Added (M0: bootstrap)
 
 - **M0 bootstrap.** Cargo workspace with four crates (`wienerenvoy-core`,
   `wienerenvoy-platform-macos`, `wienerenvoy-daemon`, `wienerenvoy-cli`), the
