@@ -29,6 +29,12 @@ allow = [
     "Unicode-DFS-2016",
     "Unicode-3.0",
     "Zlib",
+    # The OpenSSL license here is for `ring` (MIT AND ISC AND OpenSSL), a
+    # transitive dependency of rustls. We still ban the `openssl` crate itself
+    # under [bans]; this only accepts ring's license, not openssl-the-crate.
+    "OpenSSL",
+    # webpki-roots ships Mozilla's CA bundle (via rustls) under CDLA-Permissive-2.0.
+    "CDLA-Permissive-2.0",
 ]
 exceptions = []
 

@@ -14,5 +14,5 @@ pub mod metrics;
 pub mod power;
 
 pub use keepawake::CaffeinateKeeper;
-pub use metrics::MetricsSampler;
+pub use metrics::{MetricsSampler, system_info};
 pub use power::MacOsPower;

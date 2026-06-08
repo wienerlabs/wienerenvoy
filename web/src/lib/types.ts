@@ -64,3 +64,25 @@ export interface PresenceState {
   holderPid: number | null;
   since: string;
 }
+
+export type RecoveryPath =
+  | "tailnet_wake"
+  | "wol"
+  | "scheduled_wake"
+  | "launchd_relaunch"
+  | "wol_only";
+
+export interface ActionAccepted {
+  accepted: boolean;
+  action: string;
+  recoverableVia: RecoveryPath[];
+  warning: string | null;
+}
+
+// WebSocket frames are internally tagged by `type`; the Metrics/StateChanged/
+// PresenceChanged variants flatten their payload alongside the tag.
+export type WsFrame =
+  | { type: "hello"; version: string; sampleIntervalMs: number }
+  | ({ type: "metrics" } & SystemSnapshot)
+  | ({ type: "state_changed" } & ServerState)
+  | ({ type: "presence_changed" } & PresenceState);
