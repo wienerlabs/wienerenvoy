@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useTelemetry } from "@/lib/ws";
+
 import { StatusPill } from "./status-pill";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -14,6 +16,9 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { connected, snapshot } = useTelemetry();
+  const status = connected ? (snapshot?.presence ?? "online") : "offline";
+  const label = connected ? status : "disconnected";
 
   return (
     <aside
@@ -46,7 +51,7 @@ export function Sidebar() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <StatusPill status="offline" label="disconnected" />
+        <StatusPill status={status} label={label} />
         <ThemeToggle />
       </div>
     </aside>

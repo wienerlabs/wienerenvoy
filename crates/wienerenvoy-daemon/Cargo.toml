@@ -44,5 +44,6 @@ secrecy = { workspace = true, features = ["serde"] }
 rust-embed = { workspace = true, optional = true }
 
 [dev-dependencies]
+wienerenvoy-core = { workspace = true, features = ["testutil"] }
 reqwest.workspace = true
 tokio-test.workspace = true
