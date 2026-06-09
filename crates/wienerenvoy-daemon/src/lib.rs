@@ -67,10 +67,13 @@ pub async fn run() -> anyhow::Result<()> {
 
     spawn_sampler(config.metrics.sample_interval_ms, snapshot, events);
 
+    let tailnet_ip =
+        wienerenvoy_core::tailscale::resolve_tailnet_ipv4(&config.tailscale.status_cli);
     let binds = bind::resolve_binds(
         config.server.http_port,
         config.server.allow_loopback,
         &config.server.extra_bind,
+        tailnet_ip,
     );
     anyhow::ensure!(
         !binds.is_empty(),
