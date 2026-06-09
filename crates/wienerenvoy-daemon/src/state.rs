@@ -6,6 +6,7 @@ use tokio::sync::{Mutex, broadcast};
 use wienerenvoy_core::{
     AuthStore, Config, KeepAwake, PowerController, ServerStateMachine, SystemSnapshot, WsFrame,
 };
+use wienerenvoy_docker::DockerHandle;
 
 /// Application state shared across handlers. Cheap to clone (all `Arc`).
 #[derive(Clone)]
@@ -19,5 +20,7 @@ pub struct AppState {
     pub snapshot: Arc<Mutex<Option<SystemSnapshot>>>,
     /// Broadcast channel for WebSocket frames (metrics, state, presence).
     pub events: broadcast::Sender<WsFrame>,
+    /// Docker handle for service listing (no-op when Docker is absent).
+    pub docker: Arc<DockerHandle>,
     pub version: String,
 }

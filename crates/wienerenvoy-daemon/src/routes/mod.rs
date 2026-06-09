@@ -5,6 +5,7 @@ pub mod health;
 pub mod power;
 pub mod presence;
 pub mod server_state;
+pub mod services;
 pub mod stub;
 pub mod system;
 pub mod ws;

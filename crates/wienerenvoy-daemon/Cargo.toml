@@ -29,6 +29,7 @@ workspace = true
 [dependencies]
 wienerenvoy-core.workspace = true
 wienerenvoy-platform-macos.workspace = true
+wienerenvoy-docker.workspace = true
 axum.workspace = true
 tower.workspace = true
 tower-http.workspace = true
@@ -45,5 +46,6 @@ rust-embed = { workspace = true, optional = true }
 
 [dev-dependencies]
 wienerenvoy-core = { workspace = true, features = ["testutil"] }
+wienerenvoy-docker.workspace = true
 reqwest.workspace = true
 tokio-test.workspace = true

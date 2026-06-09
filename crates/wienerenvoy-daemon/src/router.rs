@@ -34,9 +34,11 @@ pub fn build_router(state: AppState, web_dir: Option<PathBuf>) -> Router {
             "/api/v1/power/wake-schedule",
             post(routes::power::wake_schedule),
         )
-        // Service-level control arrives in M2.
-        .route("/api/v1/services", get(routes::stub::not_implemented))
-        .route_layer(middleware::from_fn_with_state(state.clone(), require_bearer));
+        .route("/api/v1/services", get(routes::services::get_services))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            require_bearer,
+        ));
 
     // The WebSocket route authenticates via ?token= inside the handler, because
     // browsers cannot set request headers on a WebSocket.

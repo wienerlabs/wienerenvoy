@@ -27,6 +27,7 @@ async fn spawn_server() -> SocketAddr {
         keepawake: Arc::new(MockKeepAwake::new()),
         snapshot: Arc::new(Mutex::new(None)),
         events,
+        docker: Arc::new(wienerenvoy_docker::DockerHandle::disconnected()),
         version: "test".to_string(),
     };
     let router = build_router(state, None);

@@ -60,6 +60,8 @@ pub async fn run() -> anyhow::Result<()> {
     caffeinate.reconcile_orphan();
     let keepawake: Arc<dyn KeepAwake> = Arc::new(caffeinate);
 
+    let docker = Arc::new(wienerenvoy_docker::DockerHandle::connect().await);
+
     let app_state = AppState {
         config: Arc::new(config.clone()),
         auth: Arc::new(auth),
@@ -68,6 +70,7 @@ pub async fn run() -> anyhow::Result<()> {
         keepawake: keepawake.clone(),
         snapshot: snapshot.clone(),
         events: events.clone(),
+        docker,
         version: VERSION.to_string(),
     };
 
