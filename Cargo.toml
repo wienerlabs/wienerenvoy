@@ -5,6 +5,7 @@ members = [
     "crates/wienerenvoy-platform-macos",
     "crates/wienerenvoy-daemon",
     "crates/wienerenvoy-cli",
+    "crates/wienerenvoy-docker",
 ]
 
 [workspace.package]
@@ -21,6 +22,7 @@ readme = "README.md"
 # Internal crates
 wienerenvoy-core = { path = "crates/wienerenvoy-core", version = "0.1.0" }
 wienerenvoy-platform-macos = { path = "crates/wienerenvoy-platform-macos", version = "0.1.0" }
+wienerenvoy-docker = { path = "crates/wienerenvoy-docker", version = "0.1.0" }
 
 # Async runtime
 tokio = { version = "1.42", features = ["full"] }
@@ -62,6 +64,9 @@ sysinfo = "0.33"
 
 # Unix / process control (caffeinate orphan reconciliation)
 nix = { version = "0.29", features = ["signal", "process"] }
+
+# Docker (M2 container orchestration)
+bollard = "0.18"
 
 # Config
 figment = { version = "0.10", features = ["toml", "env"] }
