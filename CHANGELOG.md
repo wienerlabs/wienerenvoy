@@ -8,7 +8,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added (M1: live power and telemetry)
 
-- **Power control.** Keep-awake via a managed `caffeinate` child; sleep, restart,
+- **Power control.** Keep-awake via a managed `caffeinate` child (orphans
+  reconciled via pid-file on restart, guarded against PID reuse); sleep, restart,
   and shutdown with the sleep-default and shutdown-confirm asymmetry; scheduled
   wake via `pmset`; server-level on/off. Actions are checked against the config
   allowlist and recover-path metadata is returned to the caller.

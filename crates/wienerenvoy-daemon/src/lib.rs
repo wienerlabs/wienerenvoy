@@ -51,8 +51,14 @@ pub async fn run() -> anyhow::Result<()> {
 
     let (events, _) = broadcast::channel::<WsFrame>(256);
     let snapshot: Arc<Mutex<Option<SystemSnapshot>>> = Arc::new(Mutex::new(None));
-    let keepawake: Arc<dyn KeepAwake> =
-        Arc::new(CaffeinateKeeper::new(config.power.keep_awake_flags.clone()));
+    // The pid-file lives next to the token (system support dir under launchd).
+    let pid_file = config.auth.token_path.parent().map_or_else(
+        || std::env::temp_dir().join("wienerenvoy-caffeinate.pid"),
+        |p| p.join("caffeinate.pid"),
+    );
+    let caffeinate = CaffeinateKeeper::new(config.power.keep_awake_flags.clone(), pid_file);
+    caffeinate.reconcile_orphan();
+    let keepawake: Arc<dyn KeepAwake> = Arc::new(caffeinate);
 
     let app_state = AppState {
         config: Arc::new(config.clone()),
