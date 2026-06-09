@@ -6,6 +6,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added (M2.0: container discovery)
+
+- **Docker integration.** New `wienerenvoy-docker` crate (bollard) connects to the
+  local Docker (Docker Desktop, OrbStack, or Colima; socket auto-resolved) and
+  lists containers grouped into Compose stacks by the `com.docker.compose.project`
+  label. Read-only in M2.0; management and the catalog land in M2.1 and M2.2.
+- **Services API.** Real `GET /api/v1/services` returning stacks and standalone
+  containers, gated by the `services` allowlist entry. Graceful when Docker is
+  absent (`available: false`, empty view).
+- **Services dashboard.** New Services page listing stacks and containers with
+  status pills and a manual refresh.
+
 ### Added (M1: live power and telemetry)
 
 - **Power control.** Keep-awake via a managed `caffeinate` child (orphans
