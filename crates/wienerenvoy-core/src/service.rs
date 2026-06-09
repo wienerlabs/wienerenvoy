@@ -47,3 +47,47 @@ pub struct ServicesView {
     /// Containers not part of any Compose project.
     pub standalone: Vec<ContainerInfo>,
 }
+
+/// A lifecycle action on a container or stack.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServiceAction {
+    Start,
+    Stop,
+    Restart,
+}
+
+/// What a control request targets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServiceTarget {
+    /// A whole Compose stack (by project name).
+    Stack,
+    /// A single container (by id).
+    Container,
+}
+
+/// Request body for `POST /api/v1/services/control`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceControl {
+    pub kind: ServiceTarget,
+    pub id: String,
+    pub action: ServiceAction,
+}
+
+/// Result of a control action.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ControlResult {
+    pub ok: bool,
+    /// How many containers were affected (1 for a single container).
+    pub affected: usize,
+}
+
+/// Container log lines returned by `GET /api/v1/services/logs`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LogLines {
+    pub lines: Vec<String>,
+}
