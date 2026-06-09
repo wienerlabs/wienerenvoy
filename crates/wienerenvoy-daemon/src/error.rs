@@ -51,3 +51,13 @@ impl From<PowerError> for ApiError {
         }
     }
 }
+
+impl From<wienerenvoy_docker::DockerError> for ApiError {
+    fn from(err: wienerenvoy_docker::DockerError) -> Self {
+        use wienerenvoy_docker::DockerError;
+        match err {
+            DockerError::Unavailable => Self::Conflict("Docker is not available".to_string()),
+            DockerError::Bollard(inner) => Self::Internal(format!("docker: {inner}")),
+        }
+    }
+}

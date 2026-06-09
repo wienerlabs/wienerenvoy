@@ -35,6 +35,11 @@ pub fn build_router(state: AppState, web_dir: Option<PathBuf>) -> Router {
             post(routes::power::wake_schedule),
         )
         .route("/api/v1/services", get(routes::services::get_services))
+        .route(
+            "/api/v1/services/control",
+            post(routes::services::post_control),
+        )
+        .route("/api/v1/services/logs", get(routes::services::get_logs))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             require_bearer,
