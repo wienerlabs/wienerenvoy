@@ -11,5 +11,7 @@
 //! gracefully on a machine without Docker.
 
 pub mod client;
+pub mod error;
 
 pub use client::DockerHandle;
+pub use error::DockerError;

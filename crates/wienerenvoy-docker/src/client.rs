@@ -1,10 +1,19 @@
-//! Connection to the local Docker daemon and read-only container/stack listing.
+//! Connection to the local Docker daemon: discovery, read-only listing, and
+//! container/stack lifecycle control plus log tailing.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use bollard::Docker;
-use bollard::container::ListContainersOptions;
-use wienerenvoy_core::service::{ContainerInfo, DockerStatus, ServicesView, StackSummary};
+use bollard::container::{
+    ListContainersOptions, LogsOptions, RestartContainerOptions, StartContainerOptions,
+    StopContainerOptions,
+};
+use futures::StreamExt;
+use wienerenvoy_core::service::{
+    ContainerInfo, DockerStatus, ServiceAction, ServicesView, StackSummary,
+};
+
+use crate::error::DockerError;
 
 const COMPOSE_PROJECT_LABEL: &str = "com.docker.compose.project";
 
@@ -42,6 +51,10 @@ impl DockerHandle {
                 Self { docker: None }
             }
         }
+    }
+
+    fn client(&self) -> Result<&Docker, DockerError> {
+        self.docker.as_ref().ok_or(DockerError::Unavailable)
     }
 
     /// Docker availability and version.
@@ -127,4 +140,94 @@ impl DockerHandle {
             standalone,
         }
     }
+
+    /// Start, stop, or restart a single container.
+    pub async fn container_action(
+        &self,
+        id: &str,
+        action: ServiceAction,
+    ) -> Result<(), DockerError> {
+        let client = self.client()?;
+        apply_action(client, id, action).await
+    }
+
+    /// Apply an action to every container in a Compose stack. Returns the count.
+    pub async fn stack_action(
+        &self,
+        project: &str,
+        action: ServiceAction,
+    ) -> Result<usize, DockerError> {
+        let client = self.client()?;
+        let mut filters = HashMap::new();
+        filters.insert(
+            "label".to_string(),
+            vec![format!("{COMPOSE_PROJECT_LABEL}={project}")],
+        );
+        let options = ListContainersOptions::<String> {
+            all: true,
+            filters,
+            ..Default::default()
+        };
+        let containers = client.list_containers(Some(options)).await?;
+        let mut affected = 0;
+        for container in containers {
+            if let Some(id) = container.id {
+                apply_action(client, &id, action).await?;
+                affected += 1;
+            }
+        }
+        Ok(affected)
+    }
+
+    /// Tail the last `tail` log lines of a container.
+    pub async fn container_logs(&self, id: &str, tail: usize) -> Result<Vec<String>, DockerError> {
+        let client = self.client()?;
+        let options = LogsOptions::<String> {
+            stdout: true,
+            stderr: true,
+            timestamps: false,
+            tail: tail.to_string(),
+            ..Default::default()
+        };
+        let mut stream = client.logs(id, Some(options));
+        let mut lines = Vec::new();
+        while let Some(item) = stream.next().await {
+            match item {
+                Ok(output) => {
+                    for line in output.to_string().split('\n') {
+                        let trimmed = line.trim_end();
+                        if !trimmed.is_empty() {
+                            lines.push(trimmed.to_string());
+                        }
+                    }
+                }
+                Err(err) => {
+                    tracing::warn!(error = %err, "log stream error");
+                    break;
+                }
+            }
+        }
+        Ok(lines)
+    }
+}
+
+async fn apply_action(client: &Docker, id: &str, action: ServiceAction) -> Result<(), DockerError> {
+    match action {
+        ServiceAction::Start => {
+            client
+                .start_container(id, None::<StartContainerOptions<String>>)
+                .await?;
+        }
+        ServiceAction::Stop => {
+            client
+                .stop_container(id, None::<StopContainerOptions>)
+                .await?;
+        }
+        ServiceAction::Restart => {
+            client
+                .restart_container(id, None::<RestartContainerOptions>)
+                .await?;
+        }
+    }
+    Ok(())
 }
