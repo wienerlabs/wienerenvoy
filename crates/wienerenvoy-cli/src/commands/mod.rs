@@ -187,6 +187,75 @@ pub fn uninstall() -> Result<()> {
     Ok(())
 }
 
+fn container_status(state: &str) -> ui::Status {
+    match state {
+        "running" => ui::Status::Ok,
+        "paused" | "created" | "restarting" => ui::Status::Warn,
+        _ => ui::Status::Fail,
+    }
+}
+
+/// List Docker stacks and containers.
+pub async fn services(config: &Config) -> Result<()> {
+    let client = Client::from_config(config);
+    let view = client.services().await?;
+    ui::banner_heading("WienerEnvoy");
+    if !view.docker.available {
+        ui::warning("Docker is not available on the server");
+        return Ok(());
+    }
+    if view.stacks.is_empty() && view.standalone.is_empty() {
+        ui::section("Services");
+        ui::hint("no containers found");
+        return Ok(());
+    }
+    for stack in &view.stacks {
+        ui::section(&format!(
+            "{} ({}/{} up)",
+            stack.name, stack.running, stack.total
+        ));
+        for container in &stack.containers {
+            ui::line(
+                container_status(&container.state),
+                &container.name,
+                &container.status,
+            );
+        }
+    }
+    if !view.standalone.is_empty() {
+        ui::section("standalone");
+        for container in &view.standalone {
+            ui::line(
+                container_status(&container.state),
+                &container.name,
+                &container.status,
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Start, stop, or restart a stack or container.
+pub async fn service_control(config: &Config, kind: &str, id: &str, action: &str) -> Result<()> {
+    let client = Client::from_config(config);
+    let result = client.service_control(kind, id, action).await?;
+    ui::success(format!(
+        "{action} {kind} '{id}' ({} container(s) affected)",
+        result.affected
+    ));
+    Ok(())
+}
+
+/// Tail a container's logs.
+pub async fn service_logs(config: &Config, id: &str, tail: usize) -> Result<()> {
+    let client = Client::from_config(config);
+    let logs = client.service_logs(id, tail).await?;
+    for line in logs.lines {
+        println!("{line}");
+    }
+    Ok(())
+}
+
 fn fmt_bytes(n: u64) -> String {
     const UNITS: [&str; 6] = ["B", "KB", "MB", "GB", "TB", "PB"];
     if n == 0 {

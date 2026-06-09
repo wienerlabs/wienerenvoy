@@ -57,6 +57,13 @@ enum Command {
         #[arg(value_enum)]
         state: Toggle,
     },
+    /// List Docker services (stacks and containers).
+    Services,
+    /// Control a Docker stack or container.
+    Service {
+        #[command(subcommand)]
+        action: ServiceCmd,
+    },
     /// Manage the bearer token.
     Token {
         #[command(subcommand)]
@@ -95,6 +102,34 @@ enum PowerCmd {
 enum Toggle {
     On,
     Off,
+}
+
+#[derive(Subcommand)]
+enum ServiceCmd {
+    /// Start a container (or a whole stack with --stack).
+    Start {
+        id: String,
+        #[arg(long)]
+        stack: bool,
+    },
+    /// Stop a container (or a whole stack with --stack).
+    Stop {
+        id: String,
+        #[arg(long)]
+        stack: bool,
+    },
+    /// Restart a container (or a whole stack with --stack).
+    Restart {
+        id: String,
+        #[arg(long)]
+        stack: bool,
+    },
+    /// Tail a container's logs.
+    Logs {
+        id: String,
+        #[arg(long, default_value_t = 200)]
+        tail: usize,
+    },
 }
 
 #[derive(Subcommand)]
@@ -146,6 +181,19 @@ async fn main() -> ExitCode {
             commands::keep_awake(&config, matches!(state, Toggle::On)).await
         }
         Command::Server { state } => commands::server(&config, matches!(state, Toggle::On)).await,
+        Command::Services => commands::services(&config).await,
+        Command::Service { action } => match action {
+            ServiceCmd::Start { id, stack } => {
+                commands::service_control(&config, target(stack), &id, "start").await
+            }
+            ServiceCmd::Stop { id, stack } => {
+                commands::service_control(&config, target(stack), &id, "stop").await
+            }
+            ServiceCmd::Restart { id, stack } => {
+                commands::service_control(&config, target(stack), &id, "restart").await
+            }
+            ServiceCmd::Logs { id, tail } => commands::service_logs(&config, &id, tail).await,
+        },
         Command::Token { action } => match action {
             TokenAction::Show => commands::token_show(&config),
             TokenAction::Rotate => commands::token_rotate(),
@@ -162,4 +210,8 @@ async fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn target(stack: bool) -> &'static str {
+    if stack { "stack" } else { "container" }
 }

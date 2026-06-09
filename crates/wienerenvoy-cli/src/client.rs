@@ -7,7 +7,10 @@ use secrecy::ExposeSecret;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use wienerenvoy_core::auth::read_token_file;
-use wienerenvoy_core::{ActionAccepted, Config, ServerState, SystemInfo, SystemSnapshot};
+use wienerenvoy_core::{
+    ActionAccepted, Config, ControlResult, LogLines, ServerState, ServicesView, SystemInfo,
+    SystemSnapshot,
+};
 
 pub struct Client {
     base: String,
@@ -89,6 +92,28 @@ impl Client {
             &serde_json::json!({ "confirm": confirm }),
         )
         .await
+    }
+
+    pub async fn services(&self) -> Result<ServicesView> {
+        self.get("/api/v1/services").await
+    }
+
+    pub async fn service_control(
+        &self,
+        kind: &str,
+        id: &str,
+        action: &str,
+    ) -> Result<ControlResult> {
+        self.post(
+            "/api/v1/services/control",
+            &serde_json::json!({ "kind": kind, "id": id, "action": action }),
+        )
+        .await
+    }
+
+    pub async fn service_logs(&self, id: &str, tail: usize) -> Result<LogLines> {
+        self.get(&format!("/api/v1/services/logs?id={id}&tail={tail}"))
+            .await
     }
 
     async fn post<T: DeserializeOwned>(&self, path: &str, body: &serde_json::Value) -> Result<T> {
