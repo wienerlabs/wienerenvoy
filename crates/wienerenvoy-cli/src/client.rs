@@ -7,7 +7,7 @@ use secrecy::ExposeSecret;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use wienerenvoy_core::auth::read_token_file;
-use wienerenvoy_core::{Config, ServerState};
+use wienerenvoy_core::{ActionAccepted, Config, ServerState, SystemInfo, SystemSnapshot};
 
 pub struct Client {
     base: String,
@@ -56,5 +56,51 @@ impl Client {
 
     pub async fn state(&self) -> Result<ServerState> {
         self.get("/api/v1/state").await
+    }
+
+    pub async fn metrics(&self) -> Result<SystemSnapshot> {
+        self.get("/api/v1/system/metrics").await
+    }
+
+    pub async fn info(&self) -> Result<SystemInfo> {
+        self.get("/api/v1/system/info").await
+    }
+
+    pub async fn keep_awake(&self, enabled: bool) -> Result<ServerState> {
+        self.post(
+            "/api/v1/presence/keep-awake",
+            &serde_json::json!({ "enabled": enabled }),
+        )
+        .await
+    }
+
+    pub async fn server(&self, on: bool) -> Result<ServerState> {
+        let path = if on {
+            "/api/v1/power/server/on"
+        } else {
+            "/api/v1/power/server/off"
+        };
+        self.post(path, &serde_json::json!({})).await
+    }
+
+    pub async fn power(&self, action: &str, confirm: bool) -> Result<ActionAccepted> {
+        self.post(
+            &format!("/api/v1/power/{action}"),
+            &serde_json::json!({ "confirm": confirm }),
+        )
+        .await
+    }
+
+    async fn post<T: DeserializeOwned>(&self, path: &str, body: &serde_json::Value) -> Result<T> {
+        let mut req = self.http.post(format!("{}{path}", self.base)).json(body);
+        if let Some(token) = &self.token {
+            req = req.bearer_auth(token);
+        }
+        let resp = req.send().await.with_context(|| format!("POST {path}"))?;
+        let status = resp.status();
+        anyhow::ensure!(status.is_success(), "POST {path} returned HTTP {status}");
+        resp.json::<T>()
+            .await
+            .with_context(|| format!("decoding {path}"))
     }
 }

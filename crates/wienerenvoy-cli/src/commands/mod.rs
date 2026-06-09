@@ -1,9 +1,8 @@
-//! `wenvoy` subcommand implementations. M0 ships `status`, `token show`, and
-//! install/uninstall guidance; the power and token-rotate commands land in M1.
+//! `wenvoy` subcommand implementations.
 //!
-//! Several commands return `Result` even though their M0 bodies cannot fail:
-//! the dispatcher handles every command uniformly, and these gain real error
-//! paths in M1 (token rotation IO, install-script invocation).
+//! Read-only commands (status, metrics, info) and control commands (keep-awake,
+//! server on/off, power) all go through the authenticated daemon client.
+
 #![allow(clippy::unnecessary_wraps)]
 
 use anyhow::Result;
@@ -47,6 +46,106 @@ pub async fn status(config: &Config) -> Result<()> {
     Ok(())
 }
 
+/// Print a one-shot telemetry snapshot.
+pub async fn metrics(config: &Config) -> Result<()> {
+    let client = Client::from_config(config);
+    let m = client.metrics().await?;
+    ui::section("System");
+    ui::kv(
+        "cpu",
+        format!("{:.0}%  ({} cores)", m.cpu.usage_pct, m.cpu.cores),
+    );
+    ui::kv(
+        "memory",
+        format!(
+            "{} / {}",
+            fmt_bytes(m.memory.used_bytes),
+            fmt_bytes(m.memory.total_bytes)
+        ),
+    );
+    ui::kv(
+        "network",
+        format!(
+            "rx {}/s  tx {}/s",
+            fmt_bytes(m.network.rx_bytes_per_sec),
+            fmt_bytes(m.network.tx_bytes_per_sec)
+        ),
+    );
+    ui::kv("uptime", fmt_uptime(m.uptime_secs));
+    for disk in &m.disks {
+        ui::kv(
+            &disk.mount,
+            format!(
+                "{} / {}",
+                fmt_bytes(disk.used_bytes),
+                fmt_bytes(disk.total_bytes)
+            ),
+        );
+    }
+    Ok(())
+}
+
+/// Print one-shot machine info.
+pub async fn info(config: &Config) -> Result<()> {
+    let client = Client::from_config(config);
+    let i = client.info().await?;
+    ui::section("Machine");
+    ui::kv("hostname", i.hostname);
+    ui::kv("os", i.os_version);
+    ui::kv("cpu", i.cpu_model);
+    ui::kv("memory", fmt_bytes(i.mem_total));
+    ui::kv(
+        "tailnet ip",
+        i.tailnet_ip.unwrap_or_else(|| "unknown".to_string()),
+    );
+    ui::kv("daemon", format!("v{}", i.daemon_version));
+    Ok(())
+}
+
+/// Toggle the keep-awake assertion.
+pub async fn keep_awake(config: &Config, enabled: bool) -> Result<()> {
+    let client = Client::from_config(config);
+    client.keep_awake(enabled).await?;
+    ui::success(format!("keep-awake {}", if enabled { "on" } else { "off" }));
+    Ok(())
+}
+
+/// Turn the server function on or off (presence; daemon stays reachable).
+pub async fn server(config: &Config, on: bool) -> Result<()> {
+    let client = Client::from_config(config);
+    let state = client.server(on).await?;
+    ui::success(format!(
+        "server {} (presence: {})",
+        if on { "on" } else { "off" },
+        state.presence
+    ));
+    Ok(())
+}
+
+/// Issue a machine power action. `confirm` gates restart and shutdown.
+pub async fn power(config: &Config, action: &str, confirm: bool) -> Result<()> {
+    let client = Client::from_config(config);
+    match client.power(action, confirm).await {
+        Ok(accepted) => {
+            ui::success(format!("{action} command sent"));
+            if !accepted.recoverable_via.is_empty() {
+                ui::kv("recover via", format!("{:?}", accepted.recoverable_via));
+            }
+            if let Some(warning) = accepted.warning {
+                ui::warning(warning);
+            }
+            Ok(())
+        }
+        Err(err) => {
+            ui::error(format!("{action}: {err}"));
+            if action != "sleep" && !confirm {
+                ui::hint(format!("add --yes to confirm {action}"));
+            }
+            anyhow::bail!("power action failed")
+        }
+    }
+}
+
 /// Print the bearer token (read directly from the token file).
 pub fn token_show(config: &Config) -> Result<()> {
     match read_token_file(&config.auth.token_path) {
@@ -66,9 +165,9 @@ pub fn token_show(config: &Config) -> Result<()> {
     }
 }
 
-/// Token rotation lands in M1 (atomic rewrite plus daemon reload).
+/// Token rotation is planned for a later milestone (atomic rewrite + reload).
 pub fn token_rotate() -> Result<()> {
-    ui::warning("token rotation lands in M1");
+    ui::warning("token rotation is planned for a later milestone");
     Ok(())
 }
 
@@ -86,4 +185,38 @@ pub fn uninstall() -> Result<()> {
     ui::kv("run", "sudo ./install/uninstall.sh");
     ui::hint("removes the LaunchDaemon and binaries; prompts before deleting config and token");
     Ok(())
+}
+
+fn fmt_bytes(n: u64) -> String {
+    const UNITS: [&str; 6] = ["B", "KB", "MB", "GB", "TB", "PB"];
+    if n == 0 {
+        return "0 B".to_string();
+    }
+    let mut value = n as f64;
+    let mut exp = 0;
+    while value >= 1024.0 && exp < UNITS.len() - 1 {
+        value /= 1024.0;
+        exp += 1;
+    }
+    if exp == 0 {
+        format!("{n} B")
+    } else {
+        format!("{value:.1} {}", UNITS[exp])
+    }
+}
+
+fn fmt_uptime(secs: u64) -> String {
+    if secs == 0 {
+        return "--".to_string();
+    }
+    let days = secs / 86400;
+    let hours = (secs % 86400) / 3600;
+    let mins = (secs % 3600) / 60;
+    if days > 0 {
+        format!("{days}d {hours}h")
+    } else if hours > 0 {
+        format!("{hours}h {mins}m")
+    } else {
+        format!("{mins}m")
+    }
 }

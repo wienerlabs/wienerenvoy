@@ -3,7 +3,7 @@
 use std::path::Path;
 use std::process::ExitCode;
 
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use wienerenvoy_core::Config;
 
 mod client;
@@ -36,6 +36,27 @@ struct Cli {
 enum Command {
     /// Show daemon and server status.
     Status,
+    /// Print a one-shot telemetry snapshot.
+    Metrics,
+    /// Print one-shot machine info.
+    Info,
+    /// Control machine power.
+    Power {
+        #[command(subcommand)]
+        action: PowerCmd,
+    },
+    /// Toggle the keep-awake assertion.
+    KeepAwake {
+        /// on or off
+        #[arg(value_enum)]
+        state: Toggle,
+    },
+    /// Turn the server function on or off (daemon stays reachable).
+    Server {
+        /// on or off
+        #[arg(value_enum)]
+        state: Toggle,
+    },
     /// Manage the bearer token.
     Token {
         #[command(subcommand)]
@@ -53,10 +74,34 @@ enum Command {
 }
 
 #[derive(Subcommand)]
+enum PowerCmd {
+    /// Sleep the machine (recoverable over the tailnet).
+    Sleep,
+    /// Restart the machine (returns automatically after boot).
+    Restart {
+        /// Confirm the restart.
+        #[arg(long)]
+        yes: bool,
+    },
+    /// Shut down the machine (recover via Wake-on-LAN only).
+    Shutdown {
+        /// Confirm the shutdown.
+        #[arg(long)]
+        yes: bool,
+    },
+}
+
+#[derive(Clone, ValueEnum)]
+enum Toggle {
+    On,
+    Off,
+}
+
+#[derive(Subcommand)]
 enum TokenAction {
     /// Print the bearer token.
     Show,
-    /// Rotate the bearer token (M1).
+    /// Rotate the bearer token.
     Rotate,
 }
 
@@ -90,6 +135,17 @@ async fn main() -> ExitCode {
 
     let result = match cli.command {
         Command::Status => commands::status(&config).await,
+        Command::Metrics => commands::metrics(&config).await,
+        Command::Info => commands::info(&config).await,
+        Command::Power { action } => match action {
+            PowerCmd::Sleep => commands::power(&config, "sleep", true).await,
+            PowerCmd::Restart { yes } => commands::power(&config, "restart", yes).await,
+            PowerCmd::Shutdown { yes } => commands::power(&config, "shutdown", yes).await,
+        },
+        Command::KeepAwake { state } => {
+            commands::keep_awake(&config, matches!(state, Toggle::On)).await
+        }
+        Command::Server { state } => commands::server(&config, matches!(state, Toggle::On)).await,
         Command::Token { action } => match action {
             TokenAction::Show => commands::token_show(&config),
             TokenAction::Rotate => commands::token_rotate(),
