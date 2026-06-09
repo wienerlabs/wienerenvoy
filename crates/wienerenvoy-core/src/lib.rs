@@ -10,6 +10,7 @@ pub mod auth;
 pub mod config;
 pub mod power;
 pub mod presence;
+pub mod service;
 pub mod state;
 pub mod tailscale;
 pub mod telemetry;
@@ -22,6 +23,7 @@ pub use auth::{AuthError, AuthStore};
 pub use config::{Config, ConfigError};
 pub use power::{KeepAwake, MachineCommand, PowerController, PowerError, PowerInfo, WakeSpec};
 pub use presence::Presence;
+pub use service::{ContainerInfo, DockerStatus, ServicesView, StackSummary};
 pub use state::{RecoveryPath, ServerLevel, ServerState, ServerStateMachine, StateError};
 pub use telemetry::{
     CpuUsage, DiskUsage, MemoryUsage, NetworkRate, PresenceState, SystemInfo, SystemSnapshot,

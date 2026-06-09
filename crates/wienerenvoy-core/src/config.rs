@@ -157,6 +157,7 @@ impl Default for PermissionsConfig {
                 "restart".to_string(),
                 "shutdown".to_string(),
                 "server_off".to_string(),
+                "services".to_string(),
             ],
         }
     }
