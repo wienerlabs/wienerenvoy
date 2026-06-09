@@ -86,3 +86,29 @@ export type WsFrame =
   | ({ type: "metrics" } & SystemSnapshot)
   | ({ type: "state_changed" } & ServerState)
   | ({ type: "presence_changed" } & PresenceState);
+
+export interface DockerStatus {
+  available: boolean;
+  version: string | null;
+}
+
+export interface ServiceContainer {
+  id: string;
+  name: string;
+  image: string;
+  state: string;
+  status: string;
+}
+
+export interface StackSummary {
+  name: string;
+  running: number;
+  total: number;
+  containers: ServiceContainer[];
+}
+
+export interface ServicesView {
+  docker: DockerStatus;
+  stacks: StackSummary[];
+  standalone: ServiceContainer[];
+}

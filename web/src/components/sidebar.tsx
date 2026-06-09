@@ -12,6 +12,7 @@ const NAV = [
   { href: "/", label: "Overview" },
   { href: "/power", label: "Power" },
   { href: "/system", label: "System" },
+  { href: "/services", label: "Services" },
 ];
 
 export function Sidebar() {

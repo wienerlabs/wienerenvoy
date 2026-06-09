@@ -7,6 +7,7 @@ import type {
   PowerAction,
   PresenceState,
   ServerState,
+  ServicesView,
   SystemSnapshot,
 } from "./types";
 
@@ -79,4 +80,5 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ relativeSecs }),
     }),
+  services: () => request<ServicesView>("/api/v1/services"),
 };
