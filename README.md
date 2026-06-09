@@ -8,7 +8,7 @@
 [![Security](https://github.com/wienerlabs/wienerenvoy/actions/workflows/security.yml/badge.svg)](https://github.com/wienerlabs/wienerenvoy/actions/workflows/security.yml)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.95-orange)](rust-toolchain.toml)
-[![Status: M0 bootstrap](https://img.shields.io/badge/status-M0%20bootstrap-brightgreen)](CHANGELOG.md)
+[![Status: M1 live](https://img.shields.io/badge/status-M1%20power%20%2B%20telemetry-brightgreen)](CHANGELOG.md)
 
 </div>
 
@@ -57,11 +57,12 @@ Read-only, alongside (never embedded): tailscaled LocalAPI / `tailscale status`.
 
 ## Status
 
-This is **M0**, the bootstrap milestone: the workspace, the dashboard brand
-layer, governance, and CI are in place; the daemon serves `/health` and real
-server state, with the power and telemetry routes stubbed. **M1** fills in live
-power control and telemetry. See [CHANGELOG.md](CHANGELOG.md) and the roadmap
-below.
+**M1 shipped.** The daemon controls real power (keep-awake via `caffeinate`;
+sleep, restart, and shutdown with a sleep-default / shutdown-confirm split;
+scheduled wake via `pmset`) and streams live `sysinfo` telemetry over a
+WebSocket. It auto-resolves and binds the tailnet address. Both the dashboard
+and the `wenvoy` CLI drive it. M2 (container orchestration) is next. See
+[CHANGELOG.md](CHANGELOG.md) and the roadmap below.
 
 ## Quickstart (development)
 
@@ -77,10 +78,14 @@ WIENERENVOY_AUTH__TOKEN_PATH=/tmp/wenvoy-token cargo run -p wienerenvoy-daemon
 WIENERENVOY_DAEMON_URL=http://127.0.0.1:4747 pnpm -C web dev
 ```
 
-Then open http://localhost:3000 and check status from the CLI:
+Then open http://localhost:3000. The `wenvoy` CLI drives the same daemon:
 
 ```bash
-cargo run -p wienerenvoy-cli -- --config /dev/null status
+wenvoy status                 # daemon and server state
+wenvoy metrics                # live CPU / memory / disk / network
+wenvoy keep-awake on          # hold the machine awake
+wenvoy power sleep            # sleep (recoverable over the tailnet)
+wenvoy power shutdown --yes   # shut down (Wake-on-LAN recovery only)
 ```
 
 ## Installing on the Mac mini
@@ -99,8 +104,8 @@ enables Wake-on-LAN, and starts the service. Uninstall with
 
 | Milestone | Scope |
 |-----------|-------|
-| M0 | Bootstrap: workspace, brand, governance, CI, daemon hello |
-| M1 | Power and presence: keep-awake, sleep/restart/shutdown, live telemetry |
+| M0 (done) | Bootstrap: workspace, brand, governance, CI, daemon hello |
+| M1 (done) | Power and presence: keep-awake, sleep/restart/shutdown, live telemetry |
 | M2 | Container orchestration (Docker stacks, app catalog, service-level control) |
 | M3 | Deep Tailscale: zero-password whois auth, node list, Serve/Funnel |
 | M4 | Files and storage (browser, SMB/WebDAV/Taildrive, Time Machine) |

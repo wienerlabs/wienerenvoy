@@ -20,6 +20,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   scheduled wake, a token gate, and trailing-slash routing for deep links.
 - **Tests.** Recording power/keep-awake mocks plus mock-backed HTTP integration
   tests (auth, confirmation, action acceptance).
+- **`wenvoy` CLI.** `status`, `metrics`, `info`, `keep-awake on|off`,
+  `server on|off`, and `power sleep|restart|shutdown` (restart and shutdown
+  require `--yes`), all over the authenticated daemon API.
+- **Tailnet auto-bind.** The daemon resolves its Tailscale address via the
+  `tailscale` CLI and binds it automatically; loopback only when Tailscale is
+  absent.
 
 ### Added (M0: bootstrap)
 
