@@ -3,10 +3,13 @@
 // in dev. The bearer token lives in localStorage under `wienerenvoy:token`.
 
 import type {
+  ControlResult,
   Health,
+  LogLines,
   PowerAction,
   PresenceState,
   ServerState,
+  ServiceAction,
   ServicesView,
   SystemSnapshot,
 } from "./types";
@@ -81,4 +84,11 @@ export const api = {
       body: JSON.stringify({ relativeSecs }),
     }),
   services: () => request<ServicesView>("/api/v1/services"),
+  serviceControl: (kind: "stack" | "container", id: string, action: ServiceAction) =>
+    request<ControlResult>("/api/v1/services/control", {
+      method: "POST",
+      body: JSON.stringify({ kind, id, action }),
+    }),
+  serviceLogs: (id: string, tail = 200) =>
+    request<LogLines>(`/api/v1/services/logs?id=${encodeURIComponent(id)}&tail=${tail}`),
 };

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { StatusPill } from "@/components/status-pill";
 import { api } from "@/lib/api";
-import type { Presence, ServiceContainer, ServicesView } from "@/lib/types";
+import type { Presence, ServiceAction, ServiceContainer, ServicesView } from "@/lib/types";
 
 function containerStatus(state: string): Presence {
   if (state === "running") return "online";
@@ -16,6 +16,10 @@ export default function ServicesPage() {
   const [view, setView] = useState<ServicesView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [logTarget, setLogTarget] = useState<ServiceContainer | null>(null);
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const [logLoading, setLogLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -32,6 +36,32 @@ export default function ServicesPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function control(stack: string, action: ServiceAction) {
+    setBusy(`${stack}:${action}`);
+    try {
+      await api.serviceControl("stack", stack, action);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function showLogs(container: ServiceContainer) {
+    setLogTarget(container);
+    setLogLines([]);
+    setLogLoading(true);
+    try {
+      const result = await api.serviceLogs(container.id);
+      setLogLines(result.lines.length > 0 ? result.lines : ["(no log output)"]);
+    } catch (err) {
+      setLogLines([`error: ${err instanceof Error ? err.message : String(err)}`]);
+    } finally {
+      setLogLoading(false);
+    }
+  }
 
   const empty =
     view && view.docker.available && view.stacks.length === 0 && view.standalone.length === 0;
@@ -51,7 +81,7 @@ export default function ServicesPage() {
       </header>
 
       {error ? (
-        <div className="surface p-5" style={{ color: "var(--color-offline)" }}>
+        <div className="surface mb-4 p-5" style={{ color: "var(--color-offline)" }}>
           {error}
         </div>
       ) : null}
@@ -78,28 +108,69 @@ export default function ServicesPage() {
         <div className="flex flex-col gap-4">
           {view.stacks.map((stack) => (
             <div key={stack.name} className="surface p-5">
-              <div className="mb-4 flex items-center justify-between gap-4">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-lg font-medium">{stack.name}</span>
-                <span className="chip num">
-                  {stack.running}/{stack.total} up
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="chip num">
+                    {stack.running}/{stack.total} up
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busy !== null}
+                    onClick={() => void control(stack.name, "start")}
+                  >
+                    Start
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busy !== null}
+                    onClick={() => void control(stack.name, "restart")}
+                  >
+                    Restart
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busy !== null}
+                    onClick={() => void control(stack.name, "stop")}
+                  >
+                    Stop
+                  </button>
+                </div>
               </div>
-              <ContainerList containers={stack.containers} />
+              <ContainerList containers={stack.containers} onLogs={showLogs} />
             </div>
           ))}
           {view.standalone.length > 0 ? (
             <div className="surface p-5">
               <div className="chip mb-4">Standalone</div>
-              <ContainerList containers={view.standalone} />
+              <ContainerList containers={view.standalone} onLogs={showLogs} />
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {logTarget ? (
+        <LogModal
+          name={logTarget.name}
+          lines={logLines}
+          loading={logLoading}
+          onClose={() => setLogTarget(null)}
+        />
       ) : null}
     </div>
   );
 }
 
-function ContainerList({ containers }: { containers: ServiceContainer[] }) {
+function ContainerList({
+  containers,
+  onLogs,
+}: {
+  containers: ServiceContainer[];
+  onLogs: (container: ServiceContainer) => void;
+}) {
   return (
     <div className="flex flex-col gap-2">
       {containers.map((container) => (
@@ -110,9 +181,52 @@ function ContainerList({ containers }: { containers: ServiceContainer[] }) {
               {container.image}
             </div>
           </div>
-          <StatusPill status={containerStatus(container.state)} label={container.state} />
+          <div className="flex items-center gap-3">
+            <button type="button" className="btn btn-ghost" onClick={() => onLogs(container)}>
+              Logs
+            </button>
+            <StatusPill status={containerStatus(container.state)} label={container.state} />
+          </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function LogModal({
+  name,
+  lines,
+  loading,
+  onClose,
+}: {
+  name: string;
+  lines: string[];
+  loading: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ background: "rgba(0,0,0,0.5)" }}
+      onClick={onClose}
+    >
+      <div
+        className="surface-elevated flex max-h-[80vh] w-full max-w-3xl flex-col p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <span className="mono text-sm">{name}</span>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            Close
+          </button>
+        </div>
+        <pre
+          className="mono flex-1 overflow-auto rounded-md p-3 text-xs"
+          style={{ background: "var(--color-bg-deep)", color: "var(--color-muted)" }}
+        >
+          {loading ? "loading..." : lines.join("\n")}
+        </pre>
+      </div>
     </div>
   );
 }

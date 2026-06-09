@@ -112,3 +112,14 @@ export interface ServicesView {
   stacks: StackSummary[];
   standalone: ServiceContainer[];
 }
+
+export type ServiceAction = "start" | "stop" | "restart";
+
+export interface ControlResult {
+  ok: boolean;
+  affected: number;
+}
+
+export interface LogLines {
+  lines: string[];
+}
