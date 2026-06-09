@@ -6,17 +6,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added (M2.0: container discovery)
+### Added (M2: container orchestration)
 
 - **Docker integration.** New `wienerenvoy-docker` crate (bollard) connects to the
-  local Docker (Docker Desktop, OrbStack, or Colima; socket auto-resolved) and
-  lists containers grouped into Compose stacks by the `com.docker.compose.project`
-  label. Read-only in M2.0; management and the catalog land in M2.1 and M2.2.
-- **Services API.** Real `GET /api/v1/services` returning stacks and standalone
-  containers, gated by the `services` allowlist entry. Graceful when Docker is
-  absent (`available: false`, empty view).
-- **Services dashboard.** New Services page listing stacks and containers with
-  status pills and a manual refresh.
+  local Docker (Docker Desktop, OrbStack, or Colima; socket auto-resolved), lists
+  containers grouped into Compose stacks by the `com.docker.compose.project`
+  label, and controls them. The app catalog lands in M2.2.
+- **Services API.** `GET /api/v1/services` (stacks + standalone; Docker-absent
+  graceful), `POST /api/v1/services/control` (stack or container start/stop/
+  restart), and `GET /api/v1/services/logs` (container log tail). All gated by the
+  `services` allowlist entry.
+- **Services dashboard.** Services page listing stacks and containers with status
+  pills, per-stack start/stop/restart buttons, and a per-container log viewer.
+- **`wenvoy` CLI.** `services` (list), `service start|stop|restart <id> [--stack]`,
+  and `service logs <id>`.
 
 ### Added (M1: live power and telemetry)
 
