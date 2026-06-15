@@ -80,7 +80,7 @@ rand = "0.8"
 rust-embed = { version = "8", features = ["mime-guess"] }
 
 # Filesystem paths
-directories = "5"
+directories = "6"
 
 # Test
 insta = { version = "1.41", features = ["yaml", "json"] }
