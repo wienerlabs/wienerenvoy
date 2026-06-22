@@ -60,7 +60,7 @@ tower-http = { version = "0.6", features = ["trace", "cors", "fs", "limit"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 
 # System metrics
-sysinfo = "0.33"
+sysinfo = "0.39"
 
 # Unix / process control (caffeinate orphan reconciliation)
 nix = { version = "0.29", features = ["signal", "process"] }
