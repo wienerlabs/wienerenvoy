@@ -21,13 +21,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      # The runner image's rustc trails stable, and the action installs
-      # cargo-audit unlocked, so its dependency tree can ask for a compiler the
-      # image does not have. Pinning to stable is what keeps the install honest.
+      # cargo-audit is a tool, not a dependency of this workspace, so it is
+      # built with stable rather than the 1.95 that rust-toolchain.toml pins,
+      # and with --locked so its own lockfile picks its dependencies. Without
+      # both, the install resolves a crate that needs a newer compiler than the
+      # project's and the job fails before it reads a single advisory.
       - uses: dtolnay/rust-toolchain@stable
-      - uses: rustsec/audit-check@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - run: cargo +stable install --locked cargo-audit
+      - run: cargo audit
 
   deny:
     name: cargo-deny
