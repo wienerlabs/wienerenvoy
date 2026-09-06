@@ -56,7 +56,7 @@ comfy-table = "7.1"
 # HTTP server + client
 axum = { version = "0.8", features = ["ws", "macros"] }
 tower = "0.5"
-tower-http = { version = "0.6", features = ["trace", "cors", "fs", "limit"] }
+tower-http = { version = "0.7", features = ["trace", "cors", "fs", "limit"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 
 # System metrics
