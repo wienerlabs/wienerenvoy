@@ -21,6 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      # The runner image's rustc trails stable, and the action installs
+      # cargo-audit unlocked, so its dependency tree can ask for a compiler the
+      # image does not have. Pinning to stable is what keeps the install honest.
+      - uses: dtolnay/rust-toolchain@stable
       - uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
