@@ -74,7 +74,7 @@ figment = { version = "0.10", features = ["toml", "env"] }
 # Secrets / crypto
 secrecy = "0.10"
 subtle = "2.6"
-rand = "0.8"
+rand = "0.10"
 
 # Static asset embedding (daemon, behind embed-ui feature)
 rust-embed = { version = "8", features = ["mime-guess"] }
